@@ -57,6 +57,96 @@ def weights_init_kaiming(m):
             nn.init.constant_(m.bias, 0.0)
 
 
+def eval_market1501(distmat, q_feats, g_feats, q_pids, g_pids, q_camids, g_camids, max_rank, use_distmat):
+    """Evaluation with market1501 metric
+    Key: for each query identity, its gallery images from the same camera view are discarded.
+    """
+    # num_q, num_g = distmat.shape
+    num_q = q_pids.shape[0]
+    num_g = g_pids.shape[0]
+
+    print("Num queries: ", num_q)
+    print("Num gallery_images: ", num_g)
+
+    import pdb
+    pdb.set_trace()
+
+    dim = q_feats.shape[1]
+
+    index = faiss.IndexFlatL2(dim)
+    index.add(g_feats)
+
+    if num_g < max_rank:
+        max_rank = num_g
+        print('Note: number of gallery samples is quite small, got {}'.format(num_g))
+
+    startx = time()
+    if use_distmat:
+        indices = np.argsort(distmat, axis=1)
+    else:
+        _, indices = index.search(q_feats, k=num_g)
+
+    matches = (g_pids[indices] == q_pids[:, np.newaxis]).astype(np.int32)
+    print("Time to take get matches: ", time() - startx)
+
+    # compute cmc curve for each query
+    all_cmc = []
+    all_AP = []
+    all_INP = []
+    num_valid_q = 0.  # number of valid query
+
+    for q_idx in tqdm(range(num_q)):
+        # get query pid and camid
+        q_pid = q_pids[q_idx]
+        q_camid = q_camids[q_idx]
+
+        # remove gallery samples that have the same pid and camid with query
+        order = indices[q_idx]
+        remove = (g_pids[order] == q_pid) & (g_camids[order] == q_camid)
+        keep = np.invert(remove)
+
+        # compute cmc curve
+        raw_cmc = matches[q_idx][keep]  # binary vector, positions with value 1 are correct matches
+        if not np.any(raw_cmc):
+            # this condition is true when query identity does not appear in gallery
+            continue
+
+        cmc = raw_cmc.cumsum()
+
+        pos_idx = np.where(raw_cmc == 1)
+        max_pos_idx = np.max(pos_idx)
+        inp = cmc[max_pos_idx] / (max_pos_idx + 1.0)
+        all_INP.append(inp)
+
+        cmc[cmc > 1] = 1
+
+        all_cmc.append(cmc[:max_rank])
+        num_valid_q += 1.
+
+        # compute average precision
+        # reference: https://en.wikipedia.org/wiki/Evaluation_measures_(information_retrieval)#Average_precision
+        num_rel = raw_cmc.sum()
+        tmp_cmc = raw_cmc.cumsum()
+        tmp_cmc = [x / (i + 1.) for i, x in enumerate(tmp_cmc)]
+        tmp_cmc = np.asarray(tmp_cmc) * raw_cmc
+        AP = tmp_cmc.sum() / num_rel
+        all_AP.append(AP)
+
+    assert num_valid_q > 0, 'Error: all query identities do not appear in gallery'
+
+    all_cmc = np.asarray(all_cmc).astype(np.float32)
+    all_cmc = all_cmc.sum(0) / num_valid_q
+
+    mAP = np.mean(all_AP)
+    mINP = np.mean(all_INP)
+    print(f"mAP: {mAP}")
+    print(f"mINP: {mINP}")
+    for r in [1, 5, 10, 20, 50]:
+        print(f"Rank-{r}: {all_cmc[r-1]}")
+
+    return
+
+
 def eval_market1501_parallel(distmat, q_feats, g_feats, q_pids, g_pids, q_camids, g_camids, max_rank, use_distmat, num_workers=1):
     """Parallel Evaluation with market1501 metric
     Key: for each query identity, its gallery images from the same camera view are discarded.
@@ -265,7 +355,7 @@ class ModelBase(pl.LightningModule):
 
     def delete_saved_file(self, file):
         if os.path.isfile(file):
-            shutil.rmtree(file, ignore_errors=True)
+            os.remove(file)
 
     @staticmethod
     def _calculate_centroids(vecs, dim=1):
@@ -362,14 +452,7 @@ class ModelBase(pl.LightningModule):
         if not os.path.isdir(self.cache_dir):
             os.mkdir(self.cache_dir)
 
-        use_centroids = "centroids" if self.hparams.MODEL.USE_CENTROIDS else "no_centroids" 
-        prefix = f"CTL_cached_inference_{self.hparams.MODEL.NAME}_{self.hparams.DATASETS.NAMES}_{use_centroids}"
-        self.embedding_file = os.path.join(self.cache_dir, f"{prefix}_feat.npy")
-        self.pid_file = os.path.join(self.cache_dir, f"{prefix}_pid.npy")
-        self.camid_file = os.path.join(self.cache_dir, f"{prefix}_camid.npy")
-        
-        import pdb
-        pdb.set_trace()
+        self.set_feat_files("CTL_cached_inference")        
 
         # Check if these files already exist and if yes, delete them
         self.reset_cache()
@@ -379,7 +462,7 @@ class ModelBase(pl.LightningModule):
             outputs = self.test_step(batch, batch_idx)
             embeddings = outputs['emb'].detach().cpu()
             labels = outputs["labels"].detach().cpu().numpy()
-            camids = outputs["labels"].cpu().detach().numpy()
+            camids = outputs["camid"].cpu().detach().numpy()
             del outputs
 
             NpyAppendArray(self.pid_file).append(labels)
@@ -415,20 +498,26 @@ class ModelBase(pl.LightningModule):
 
 
     def parallelized_cached_eval(self):
-        assert self.hparams.TEST.CACHE.FEAT_REUSE
-        assert self.hparams.TEST.CACHE.PARALLEL.ENABLED
-        assert self.hparams.TEST.CACHE.PARALLEL.NUM_WORKERS > 1
+        assert self.hparams.TEST.CACHE.FEAT_REUSE.ENABLED
+        assert self.hparams.TEST.CACHE.FEAT_REUSE.PREFIX is not None, 'Oops, no prefix specified for the features to be used'
+
+        do_parallel = self.hparams.TEST.CACHE.PARALLEL.ENABLED
+        if do_parallel:
+            num_workers = self.hparams.TEST.CACHE.PARALLEL.NUM_WORKERS
+            assert num_workers > 1, "Oops, need to specify more than one worker for parallelization"
 
         assert os.path.isdir(self.cache_dir), "Oops no cache directory found"
+
+        self.set_feat_files(self.hparams.TEST.CACHE.FEAT_REUSE.PREFIX)
         assert os.path.isfile(self.embedding_file), "No embeddings found"
         assert os.path.isfile(self.pid_file), "No person id file found"
         assert os.path.isfile(self.camid_file), "No camera id file found"
 
-        features = np.load(self.embedding_file, allow_pickle=True)
-        pids = np.load(self.pid_file, allow_pickle=True)
+        features = np.load(self.embedding_file, allow_pickle=True).astype(np.float32)
+        pids = np.load(self.pid_file, allow_pickle=True).astype(np.float32)
         camids =  np.load(self.camid_file, allow_pickle=True)
         num_query = self.hparams.num_query
-        
+
         q_feats = features[:num_query]
         q_pids = pids[:num_query]
         q_camids = camids[:num_query]
@@ -442,8 +531,11 @@ class ModelBase(pl.LightningModule):
         distmat = None
         use_distmat = False
         max_rank = 50
-        num_workers = self.hparams.TEST.CACHE.PARALLEL.NUM_WORKERS
-        eval_market1501_parallel(distmat, q_feats, g_feats, q_pids, g_pids, q_camids, g_camids, max_rank, use_distmat, num_workers)
+
+        if do_parallel:
+            eval_market1501_parallel(distmat, q_feats, g_feats, q_pids, g_pids, q_camids, g_camids, max_rank, use_distmat, num_workers)
+        else:
+            eval_market1501(distmat, q_feats, g_feats, q_pids, g_pids, q_camids, g_camids, max_rank, use_distmat)
         return
 
     @rank_zero_only
@@ -566,12 +658,16 @@ class ModelBase(pl.LightningModule):
         log_data = {**log_data, **topks}
         self.trainer.logger.log_metrics(log_data, step=self.trainer.current_epoch)
 
-    def save_output(self, embeddings, labels, camids):
+    
+    def set_feat_files(self, prefix):
         use_centroids = "centroids" if self.hparams.MODEL.USE_CENTROIDS else "no_centroids" 
-        prefix = f"CTL_{self.hparams.MODEL.NAME}_{self.hparams.DATASETS.NAMES}_{use_centroids}"
+        prefix = f"{prefix}_{self.hparams.MODEL.NAME}_{self.hparams.DATASETS.NAMES}_{use_centroids}"
         self.embedding_file = os.path.join(self.cache_dir, f"{prefix}_feat.npy")
         self.pid_file = os.path.join(self.cache_dir, f"{prefix}_pid.npy")
         self.camid_file = os.path.join(self.cache_dir, f"{prefix}_camid.npy")
+
+    def save_output(self, embeddings, labels, camids):
+        self.set_feat_files("CTL")
 
         # Deleting any previously existing npy files for sake of clarity
         self.reset_cache()

@@ -164,7 +164,11 @@ _C.TEST.CACHE.ENABLED = False
 # Path to where cached features are saved
 _C.TEST.CACHE.CACHE_DIR = None
 # Whether to reuse cached features for evaluation
-_C.TEST.CACHE.FEAT_REUSE = False
+_C.TEST.CACHE.FEAT_REUSE = CN()
+# Feat reuse enabled
+_C.TEST.CACHE.FEAT_REUSE.ENABLED = False
+# Prefix of featrures to be used from cache directory
+_C.TEST.CACHE.FEAT_REUSE.PREFIX = None
 # Stats computation parallelization options
 _C.TEST.CACHE.PARALLEL = CN()
 # If parallelization is enabled
