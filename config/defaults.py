@@ -157,6 +157,20 @@ _C.TEST.VISUALIZE = "no"
 _C.TEST.VISUALIZE_TOPK = 10
 # Max number of query images plotted
 _C.TEST.VISUALIZE_MAX_NUMBER = 1000000
+# Caching test output params
+_C.TEST.CACHE = CN()
+# Whether cache is enabled
+_C.TEST.CACHE.ENABLED = False
+# Path to where cached features are saved
+_C.TEST.CACHE.CACHE_DIR = None
+# Whether to reuse cached features for evaluation
+_C.TEST.CACHE.FEAT_REUSE = False
+# Stats computation parallelization options
+_C.TEST.CACHE.PARALLEL = CN()
+# If parallelization is enabled
+_C.TEST.CACHE.PARALLEL.ENABLED = False
+# Num of worker processes for the parallel computation
+_C.TEST.CACHE.PARALLEL.NUM_WORKERS = 1
 
 # ---------------------------------------------------------------------------- #
 # MISC
