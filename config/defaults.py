@@ -35,6 +35,12 @@ _C.MODEL.USE_CENTROIDS = False
 _C.MODEL.KEEP_CAMID_CENTROIDS = True
 # Set True if Pre-traing path points to previously trained/aborted model
 _C.MODEL.RESUME_TRAINING = False
+# Custom final layer opts
+_C.MODEL.CUSTOM_FINAL_CLASSIFICATION = CN()
+# Enable option
+_C.MODEL.CUSTOM_FINAL_CLASSIFICATION.ENABLED = False
+# Original number of final classes when loading from checkpoint model 
+_C.MODEL.CUSTOM_FINAL_CLASSIFICATION.ORIGINAL_NUM_CLASSES = None
 
 # -----------------------------------------------------------------------------
 # INPUT
@@ -65,6 +71,8 @@ _C.DATASETS.NAMES = "market1501"
 _C.DATASETS.ROOT_DIR = "/home/data"
 # Path to json train file for datasets that require it
 _C.DATASETS.JSON_TRAIN_PATH = ""
+# Set verbose mode when loading certain datasets
+_C.DATASETS.VERBOSE = False
 
 # -----------------------------------------------------------------------------
 # DATALOADER
@@ -157,6 +165,8 @@ _C.TEST.VISUALIZE = "no"
 _C.TEST.VISUALIZE_TOPK = 10
 # Max number of query images plotted
 _C.TEST.VISUALIZE_MAX_NUMBER = 1000000
+# Use eval set for testing
+_C.TEST.USE_EVAL_SET = False
 # Caching test output params
 _C.TEST.CACHE = CN()
 # Whether cache is enabled

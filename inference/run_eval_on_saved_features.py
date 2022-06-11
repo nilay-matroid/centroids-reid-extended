@@ -9,6 +9,7 @@ print(sys.path)
 from datasets import init_dataset
 from train_ctl_model import CTLModel
 from config import cfg
+import torch.nn as nn
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CLT Model Training")
@@ -21,6 +22,7 @@ if __name__ == "__main__":
         default=None,
         nargs=argparse.REMAINDER,
     )
+    parser.add_argument("--use_centroids", action='store_true')
 
     args = parser.parse_args()
     if args.config_file != "":
@@ -40,15 +42,27 @@ if __name__ == "__main__":
 
     method = CTLModel
     if cfg.TEST.ONLY_TEST:
+        num_classes = dm.num_classes
+        use_custom_final_layer = cfg.MODEL.CUSTOM_FINAL_CLASSIFICATION.ENABLED
+        if use_custom_final_layer:
+            num_classes = cfg.MODEL.CUSTOM_FINAL_CLASSIFICATION.ORIGINAL_NUM_CLASSES
+            assert num_classes is not None
+            print(f"Loading model trained with final number of categories: {num_classes}") 
+            print(f"Using the model to finetune/extract features for dataset with number of classes: {dm.num_classes}")
+
         method = method.load_from_checkpoint(
             cfg.MODEL.PRETRAIN_PATH,
             cfg=cfg,
             num_query=dm.num_query,
-            num_classes=dm.num_classes,
+            num_classes=num_classes,
             use_multiple_loggers=True if len(loggers) > 1 else False,
         )
 
+        if use_custom_final_layer:
+            method.center_loss.centers = nn.Parameter(nn.Linear(dm.num_classes, cfg.MODEL.BACKBONE_EMB_SIZE).weight)
+            method.fc_query.weight = nn.Parameter(nn.Linear(dm.num_classes, cfg.MODEL.BACKBONE_EMB_SIZE).weight)
+
         method.set_test_loader(val_dataloader)
         method = method.cuda()
-        method.hparams.MODEL.USE_CENTROIDS = True
+        method.hparams.MODEL.USE_CENTROIDS = args.use_centroids
         method.parallelized_cached_eval()
