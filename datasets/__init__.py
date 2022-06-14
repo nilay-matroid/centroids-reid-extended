@@ -13,13 +13,15 @@ from .market1501 import Market1501
 from .df1 import DF1
 from .street2shop import Street2Shop
 from .last import LaST
+from .sysu30k import sysu30k
 
 __factory = {
     "market1501": Market1501,
     "dukemtmcreid": DukeMTMCreID,
     "df1": DF1,
     "street2shop": Street2Shop,
-    "last": LaST
+    "last": LaST,
+    "sysu30k": sysu30k
 }
 
 

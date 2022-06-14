@@ -23,6 +23,7 @@ if __name__ == "__main__":
         nargs=argparse.REMAINDER,
     )
     parser.add_argument("--use_centroids", action='store_true')
+    parser.add_argument("--skip_init_embedding_computation", action='store_true')
 
     args = parser.parse_args()
     if args.config_file != "":
@@ -65,6 +66,12 @@ if __name__ == "__main__":
         method.set_test_loader(val_dataloader)
         method = method.cuda()
         method.hparams.MODEL.USE_CENTROIDS = args.use_centroids
-        method.batched_cached_inference()
+        if not args.skip_init_embedding_computation:
+            method.batched_cached_inference()
+        else:
+            print("Skipping vanilla feature computation ... assuming this has been already done")
+            print("Directly computing centroid features ... ")
+            method.set_feat_files("CTL_cached_inference")
+
         if method.hparams.MODEL.USE_CENTROIDS:
             method.batched_validation_create_centroids()

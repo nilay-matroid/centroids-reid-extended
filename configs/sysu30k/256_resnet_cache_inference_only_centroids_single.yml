@@ -1,0 +1,43 @@
+MODEL:
+  NAME: 'resnet50'
+  BACKBONE_EMB_SIZE: 2048
+  PRETRAIN_PATH: '/home/ubuntu/Nilay/PersonReIDModels/centroids-reid-extended/checkpoints/market1501_resnet50_256_128_epoch_120.ckpt'
+  KEEP_CAMID_CENTROIDS: False
+  CUSTOM_FINAL_CLASSIFICATION:
+    ENABLED: True
+    ORIGINAL_NUM_CLASSES: 751
+
+INPUT:
+  SIZE_TRAIN: [256,128]
+  SIZE_TEST: [256,128]
+
+DATALOADER:
+  NUM_INSTANCE: 4
+
+SOLVER:
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.00035
+  OPTIMIZER_NAME: "Adam"
+  MAX_EPOCHS: 120
+  EVAL_PERIOD: 40
+
+USE_MIXED_PRECISION: True
+
+REPRODUCIBLE_NUM_RUNS: 1
+
+GPU_IDS: [0] 
+
+DATASETS:
+  NAMES: 'sysu30k'
+  ROOT_DIR: '/home/ubuntu/Nilay/PersonReIDModels/centroids-reid-extended/datasets/data/'
+  VERBOSE: True
+
+TEST:
+  IMS_PER_BATCH: 128
+  ONLY_TEST: True
+  USE_EVAL_SET: False
+  CACHE:
+    ENABLED: True
+    CACHE_DIR: './logs/sysu30k/256_resnet50/cache/centroid_feat'
+
+OUTPUT_DIR: './logs/sysu30k/256_resnet50/'
