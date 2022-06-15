@@ -2,7 +2,7 @@ MODEL:
   NAME: 'resnet50'
   BACKBONE_EMB_SIZE: 2048
   PRETRAIN_PATH: '/home/ubuntu/Nilay/PersonReIDModels/centroids-reid-extended/checkpoints/market1501_resnet50_256_128_epoch_120.ckpt'
-  KEEP_CAMID_CENTROIDS: True
+  KEEP_CAMID_CENTROIDS: False
   CUSTOM_FINAL_CLASSIFICATION:
     ENABLED: True
     ORIGINAL_NUM_CLASSES: 751
@@ -38,6 +38,6 @@ TEST:
   USE_EVAL_SET: False
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/last/256_resnet50/cache_test'
+    CACHE_DIR: './logs/last/256_resnet50/cache_centroids'
 
 OUTPUT_DIR: './logs/last/256_resnet50/'
