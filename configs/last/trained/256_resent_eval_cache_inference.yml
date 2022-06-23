@@ -1,0 +1,41 @@
+MODEL:
+  NAME: 'resnet50'
+  BACKBONE_EMB_SIZE: 2048
+  PRETRAIN_PATH: '/home/ubuntu/Nilay/PersonReIDModels/centroids-reid-extended/logs/last/256_resnet50/train_ctl_model/version_0/auto_checkpoints/checkpoint_119.pth'
+  KEEP_CAMID_CENTROIDS: False
+
+INPUT:
+  SIZE_TRAIN: [256,128]
+  SIZE_TEST: [256,128]
+
+DATALOADER:
+  NUM_INSTANCE: 4
+  USE_RESAMPLING: False
+
+SOLVER:
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.00035
+  OPTIMIZER_NAME: "Adam"
+  MAX_EPOCHS: 120
+  EVAL_PERIOD: 40
+
+USE_MIXED_PRECISION: False
+
+REPRODUCIBLE_NUM_RUNS: 1
+
+GPU_IDS: [0] 
+
+DATASETS:
+  NAMES: 'last'
+  ROOT_DIR: '/home/ubuntu/Nilay/PersonReIDModels/centroids-reid-extended/datasets/data/'
+  VERBOSE: True
+
+TEST:
+  IMS_PER_BATCH: 128
+  ONLY_TEST: True
+  USE_EVAL_SET: True
+  CACHE:
+    ENABLED: True
+    CACHE_DIR: './logs/last/trained/256_resnet50/cache'
+
+OUTPUT_DIR: './logs/last/trained/256_resnet50/'
