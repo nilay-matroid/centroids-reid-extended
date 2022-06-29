@@ -174,6 +174,8 @@ _C.TEST.CACHE.ENABLED = False
 # Path to where cached features are saved
 _C.TEST.CACHE.CACHE_DIR = None
 # Whether to reuse cached features for evaluation
+_C.TEST.CACHE.SAVE_IMG_PATH = True
+# Path to where cached features are saved
 _C.TEST.CACHE.FEAT_REUSE = CN()
 # Feat reuse enabled
 _C.TEST.CACHE.FEAT_REUSE.ENABLED = False
