@@ -33,6 +33,6 @@ TEST:
   ONLY_TEST: True
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/market1501/256_resnet50/cache_batched'
+    CACHE_DIR: './logs/market1501/256_resnet50/cache_w_img'
 
 OUTPUT_DIR: './logs/market1501/256_resnet50/'

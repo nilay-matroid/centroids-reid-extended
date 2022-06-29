@@ -63,6 +63,7 @@ class LaST(ReidBaseDataModule):
         self.gallery_dir = osp.join(self.dataset_dir, 'val', 'gallery')
         self.query_test_dir = osp.join(self.dataset_dir, 'test', 'query')
         self.gallery_test_dir = osp.join(self.dataset_dir, 'test', 'gallery')
+        self.save_img_path = cfg.TEST.CACHE.SAVE_IMG_PATH
 
     def setup(self):
         required_files = [
@@ -92,7 +93,7 @@ class LaST(ReidBaseDataModule):
 
         self.query_list = query
         self.gallery_list = gallery
-        self.val = BaseDatasetLabelled(query+gallery, transforms_base.build_transforms(is_train=False))
+        self.val = BaseDatasetLabelled(query+gallery, transforms_base.build_transforms(is_train=False), return_paths=self.save_img_path)
 
         if self.verbose:
             print("=> LaST loaded")

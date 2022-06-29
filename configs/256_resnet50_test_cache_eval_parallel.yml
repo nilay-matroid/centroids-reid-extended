@@ -33,10 +33,10 @@ TEST:
   ONLY_TEST: True
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/market1501/256_resnet50/cache'
+    CACHE_DIR: './logs/market1501/256_resnet50/cache_w_img'
     FEAT_REUSE:
       ENABLED: True
-      PREFIX: 'CTL'
+      PREFIX: 'CTL_cached_inference'
     PARALLEL:
       ENABLED: True
       NUM_WORKERS: 4

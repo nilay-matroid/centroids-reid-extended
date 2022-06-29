@@ -44,6 +44,7 @@ class Market1501(ReidBaseDataModule):
         self.train_dir = osp.join(self.dataset_dir, 'bounding_box_train')
         self.query_dir = osp.join(self.dataset_dir, 'query')
         self.gallery_dir = osp.join(self.dataset_dir, 'bounding_box_test')
+        self.save_img_path = cfg.TEST.CACHE.SAVE_IMG_PATH
 
     def setup(self):
         self._check_before_run()
@@ -58,7 +59,7 @@ class Market1501(ReidBaseDataModule):
         gallery, gallery_dict  = self._process_dir(self.gallery_dir, relabel=False)
         self.query_list = query
         self.gallery_list = gallery
-        self.val = BaseDatasetLabelled(query+gallery, transforms_base.build_transforms(is_train=False))
+        self.val = BaseDatasetLabelled(query+gallery, transforms_base.build_transforms(is_train=False), return_paths=self.save_img_path)
 
         self._print_dataset_statistics(train, query, gallery)
         # For reid_metic to evaluate properly

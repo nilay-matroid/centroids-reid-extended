@@ -341,7 +341,9 @@ class ModelBase(pl.LightningModule):
             self.cache_dir = self.hparams.TEST.CACHE.CACHE_DIR
             assert self.cache_dir is not None, 'Oops, no cache dir specified'
             if not os.path.isdir(self.cache_dir):
-                os.mkdir(self.cache_dir)            
+                os.mkdir(self.cache_dir)
+
+        self.save_img_path = self.hparams.TEST.CACHE.SAVE_IMG_PATH            
 
     def set_test_loader(self, test_loader):
         assert test_loader is not None
@@ -352,6 +354,10 @@ class ModelBase(pl.LightningModule):
         self.delete_saved_file(self.embedding_file)
         self.delete_saved_file(self.pid_file)
         self.delete_saved_file(self.camid_file)
+
+        if self.save_img_path:
+            self.delete_saved_file(self.save_img_file)
+            self.img_paths = []
 
     def delete_saved_file(self, file):
         if os.path.isfile(file):
@@ -442,6 +448,9 @@ class ModelBase(pl.LightningModule):
         with torch.no_grad():
             _, emb = self.backbone(x)
             emb = self.bn(emb)
+
+        if self.save_img_path:
+            return {"emb": emb, "labels": class_labels, "camid": camid, "img_paths": idx}
         return {"emb": emb, "labels": class_labels, "camid": camid, "idx": idx}
 
 
@@ -458,16 +467,27 @@ class ModelBase(pl.LightningModule):
         self.reset_cache()
 
         for batch_idx, batch in enumerate(tqdm(self.test_dataloader)):
-            batch = [x.cuda() for x in batch]
+            if self.save_img_path:
+                batch = [x.cuda() for x in batch[:-1]] + [batch[-1]]
+            else:
+                batch = [x.cuda() for x in batch]
             outputs = self.test_step(batch, batch_idx)
             embeddings = outputs['emb'].detach().cpu()
             labels = outputs["labels"].detach().cpu().numpy()
             camids = outputs["camid"].cpu().detach().numpy()
+            if self.save_img_path:
+                imgpaths = list(outputs["img_paths"])
             del outputs
 
             NpyAppendArray(self.pid_file).append(labels)
             NpyAppendArray(self.camid_file).append(camids)
             NpyAppendArray(self.embedding_file).append(embeddings.numpy())
+
+            if self.save_img_path:
+                self.img_paths.extend(imgpaths)
+
+        if self.save_img_path:
+            np.save(self.save_img_file, self.img_paths)
 
 
     def batched_validation_create_centroids(self):
@@ -665,6 +685,8 @@ class ModelBase(pl.LightningModule):
         self.embedding_file = os.path.join(self.cache_dir, f"{prefix}_feat.npy")
         self.pid_file = os.path.join(self.cache_dir, f"{prefix}_pid.npy")
         self.camid_file = os.path.join(self.cache_dir, f"{prefix}_camid.npy")
+        if self.save_img_path:
+            self.save_img_file = os.path.join(self.cache_dir, f"{prefix}_imgpath.npy")
 
     def save_output(self, embeddings, labels, camids):
         self.set_feat_files("CTL")

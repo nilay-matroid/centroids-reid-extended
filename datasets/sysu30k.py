@@ -79,6 +79,7 @@ class sysu30k(ReidBaseDataModule):
         self.train_dir = osp.join(self.dataset_dir, 'sysu_train_set_all')
         self.query_dir = osp.join(self.dataset_dir, 'sysu_test_set_all', 'query')
         self.gallery_dir = osp.join(self.dataset_dir, 'sysu_test_set_all', 'gallery')
+        self.save_img_path = cfg.TEST.CACHE.SAVE_IMG_PATH
 
 
     def setup(self):
@@ -100,7 +101,7 @@ class sysu30k(ReidBaseDataModule):
         gallery, _ = self.process_dir(self.gallery_dir)
         self.query_list = query
         self.gallery_list = gallery
-        self.val = BaseDatasetLabelled(query+gallery, transforms_base.build_transforms(is_train=False))
+        self.val = BaseDatasetLabelled(query+gallery, transforms_base.build_transforms(is_train=False), return_paths=self.save_img_path)
 
         if self.verbose:
             print("=> SYSU-30k loaded")
