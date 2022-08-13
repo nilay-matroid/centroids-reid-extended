@@ -38,6 +38,6 @@ TEST:
   ONLY_TEST: True
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/last/trained/market_256_resnet50/cache'
+    CACHE_DIR: './logs/last/trained/market_256_resnet50/cache_img'
 
 OUTPUT_DIR: './logs/last/trained/market_256_resnet50/'

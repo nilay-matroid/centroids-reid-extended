@@ -36,7 +36,7 @@ TEST:
   USE_EVAL_SET: False
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/last/trained/256_resnet50/cache'
+    CACHE_DIR: './logs/last/trained/256_resnet50/cache_img'
     FEAT_REUSE:
       ENABLED: True
       PREFIX: 'CTL_cached_inference'

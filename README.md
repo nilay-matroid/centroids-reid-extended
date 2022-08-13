@@ -1,5 +1,162 @@
-# On the Unreasonable Effectiveness of Centroids in Image Retrieval
+# Matroid-Centroid-Reid
 
+## Introduction
+This is a modified implementation of the paper "On the Unreasonable Effectiveness of Centroids in Image Retrieval" to train and evaluate the model on other new datasets namely - LaST, SYSU-30k and the old academic dataset - Market1501
+
+## Environment
+```bash
+conda env create -f environment.yml
+conda activate ctl
+```
+
+## Config file
+The main parameters and arguments for training/evaluation are specified in config.yaml file such as 
+- Base model architecture
+- Backbones
+- input/output sizes
+- Batch sizes
+- Reranking
+- Caching
+- Parallelized evaluation
+
+Checkout ./config/defaults.py for a comprehensive list of parameters set by config files. \
+Some important ones are: 
+- Model
+```bash
+MODEL:
+  NAME: 'resnet50'
+  BACKBONE_EMB_SIZE: 2048
+  PRETRAIN_PATH: '<CHECKPOINT_DIR>/checkpoints/market1501_resnet50_256_128_epoch_120.ckpt'
+  KEEP_CAMID_CENTROIDS: False
+  CUSTOM_FINAL_CLASSIFICATION:
+    ENABLED: True
+    ORIGINAL_NUM_CLASSES: 751
+```
+
+**Note**: \
+The option CUSTOM_FINAL_CLASSIFICATION is used when the checkpoint is trained with different number of classes that the model architecture we are loading the checkpoint into. \
+This was an easier fix compared to dropping final classification layers which are not used anyway for similarity search.
+
+- Dataset
+```bash
+DATASETS:
+  NAMES: 'last'
+  ROOT_DIR: '<DATASET_DIR>'
+  VERBOSE: True
+```
+
+- Input
+```bash
+INPUT:
+  SIZE_TRAIN: [256,128]
+  SIZE_TEST: [256,128]
+```
+
+- Test options
+```bash
+TEST:
+  IMS_PER_BATCH: 128
+  ONLY_TEST: True
+  USE_EVAL_SET: False
+  CACHE:
+    ENABLED: True
+    CACHE_DIR: './logs/last/256_resnet50/cache'
+    FEAT_REUSE:
+      ENABLED: True
+      PREFIX: 'CTL_cached_inference'
+    PARALLEL:
+      ENABLED: True
+      NUM_WORKERS: 14
+```
+
+## Evaluation
+Evaluation can be performed in two ways: \
+Using Market1501 as an example. 
+- Single stage evaluation 
+```bash
+python train_ctl_model.py --config_file="configs/256_resnet50_test.yml"
+```
+Single stage is possible only for Market1501 on dev machine due to CPU memory constraints.
+
+- Two stage evaluation
+    - Inference
+    ```bash
+    python3 inference/save_test_inference_embeddings.py --config 'configs/256_resnet50_test_cache_batched_single.yml'
+    ```
+
+    - Evaluation without centroids
+    ```bash
+    python3 inference/run_eval_on_saved_features.py --config 'configs/256_resnet50_test_cache_eval_parallel.yml'
+    ```
+
+    - Evaluation with centroids
+    ```bash
+    python3 inference/run_eval_on_saved_features.py --config 'configs/256_resnet50_test_cache_eval_parallel.yml' --use_centroids
+    ```
+
+## Final Evaluation scripts
+- **LaST**
+    - Eval set
+        - Inference
+        ```bash
+        python3 inference/save_test_inference_embeddings.py --config 'configs/last/256_resnet_eval_cache_inference_single.yml'
+        ```
+        - Evaluation
+            - Without centroids
+            ```bash
+            python3 inference/run_eval_on_saved_features.py --config 'configs/last/256_resnet_eval_cache_eval_single.yml'
+            ```
+
+            - With centroids (mAP not good metric here)
+            ```bash
+            python3 inference/run_eval_on_saved_features.py --config 'configs/last/256_resnet_eval_cache_eval_single.yml' --use_centroids
+            ```
+
+    - Test set
+        - Inference
+        ```bash
+        python3 inference/save_test_inference_embeddings.py --config 'configs/last/256_resnet_test_cache_inference_single.yml'
+        ```
+
+        - Evaluation
+            - Without centroids 
+            ```bash
+            python3 inference/run_eval_on_saved_features.py --config 'configs/last/256_resnet_test_cache_eval_single.yml'
+            ```
+
+            - With centroids (mAP not good metric here)
+            ```bash
+            python3 inference/run_eval_on_saved_features.py --config 'configs/last/256_resnet_test_cache_eval_single.yml' --use_centroids
+            ```
+
+- **SYSU-30k**
+    - Inference
+    ```bash
+    python3 inference/save_test_inference_embeddings.py --config 'configs/sysu30k/256_resnet_cache_inference_single.yml'
+    ```
+
+    - Evaluation
+        - Without centroids
+        ```bash
+        python3 inference/run_eval_on_saved_features.py --config 'configs/sysu30k/256_resnet_cache_eval_single.yml'
+        ```
+
+        - With centroids (mAP not good metric here) \
+        **Caution**: \
+        Here we don’t set respect_camids flag while creating centroid embeddings. See "256_resnet_cache_inference_only_centroids_single.yml" \
+        This is so as that logic was hand tailored for Market1501. 
+        ```bash
+        python3 inference/run_eval_on_saved_features.py --config 'configs/sysu30k/256_resnet_cache_eval_single.yml' --use_centroids
+        ```
+
+
+## Training
+Script to train on LaST dataset.
+```bash
+python train_ctl_model.py --config_file="configs/last/256_resnet_train.yml"
+```
+
+# On the Unreasonable Effectiveness of Centroids in Image Retrieval (Original Paper Documentation)
 
 Official code repository for paper "On the Unreasonable Effectiveness of Centroids in Image Retrieval". \
 Paper accepted to ICONIP 2021 conference.  

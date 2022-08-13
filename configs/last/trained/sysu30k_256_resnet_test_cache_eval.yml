@@ -39,12 +39,12 @@ TEST:
   USE_EVAL_SET: False
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/last/trained/sysu30k_256_resnet50/cache_2'
+    CACHE_DIR: './logs/last/trained/sysu30k_256_resnet50/cache_img'
     FEAT_REUSE:
       ENABLED: True
       PREFIX: 'CTL_cached_inference'
     PARALLEL:
       ENABLED: True
-      NUM_WORKERS: 4
+      NUM_WORKERS: 10
 
 OUTPUT_DIR: './logs/last/trained/sysu30k_256_resnet50/'

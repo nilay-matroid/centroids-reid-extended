@@ -33,9 +33,9 @@ DATASETS:
 TEST:
   IMS_PER_BATCH: 128
   ONLY_TEST: True
-  USE_EVAL_SET: True
+  USE_EVAL_SET: False
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/last/trained/256_resnet50/cache'
+    CACHE_DIR: './logs/last/trained/256_resnet50/cache_img'
 
 OUTPUT_DIR: './logs/last/trained/256_resnet50/'

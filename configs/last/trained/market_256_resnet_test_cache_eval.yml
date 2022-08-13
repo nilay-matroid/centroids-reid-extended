@@ -38,12 +38,12 @@ TEST:
   ONLY_TEST: True
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/last/trained/market_256_resnet50/cache'
-  FEAT_REUSE:
+    CACHE_DIR: './logs/last/trained/market_256_resnet50/cache_img'
+    FEAT_REUSE:
       ENABLED: True
       PREFIX: 'CTL_cached_inference'
-  PARALLEL:
-    ENABLED: True
-    NUM_WORKERS: 4
+    PARALLEL:
+      ENABLED: True
+      NUM_WORKERS: 4
 
 OUTPUT_DIR: './logs/last/trained/market_256_resnet50/'

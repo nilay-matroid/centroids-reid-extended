@@ -38,6 +38,6 @@ TEST:
   USE_EVAL_SET: False
   CACHE:
     ENABLED: True
-    CACHE_DIR: './logs/sysu30k/256_resnet50/cache_tmp'
+    CACHE_DIR: './logs/sysu30k/256_resnet50/cache_img'
 
 OUTPUT_DIR: './logs/sysu30k/256_resnet50/'
